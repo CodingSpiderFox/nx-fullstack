@@ -1,94 +1,131 @@
+# Deploy a fullstack NX workspace on Heroku
 
+[NX Workspaces](https://nx.dev/) is a powerful tool for scaffolding enterprise level starting points for node.js monorepos. In this post we will be scaffolding a simple React & Express app that we will deploy to [Heroku](https://www.heroku.com/). We will using yarn as package manager.
 
-# NxFullstack
+## Use NX cli to generate new React & Express app
 
-This project was generated using [Nx](https://nx.dev).
+Run the following command in your terminal.
 
-<p style="text-align: center;"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="450"></p>
+```
+yarn create nx-workspace --package-manager=yarn nx-fullstack
+```
 
-🔎 **Powerful, Extensible Dev Tools**
+Or if you prefer npm
 
-## Adding capabilities to your workspace
+```
+npx create nx-workspace nx-fullstack
+```
 
-Nx supports many plugins which add capabilities for developing different types of applications and different tools.
+#### Define you project configuration
 
-These capabilities include generating applications, libraries, etc as well as the devtools to test, and build projects as well.
+You'll be greeted by this prompt. Select <code>react-express</code> in the CLI list. Name your application <code>nx-fullstack</code>. Select <code>styled-components</code> as your styling solution. Select if you want sign up for the NX Cloud. The CLI will now scaffold your project.
+![NX CLI](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/p3jv8s8vjctp4gut8a7p.png)
 
-Below are our core plugins:
+#### Run your newly generated app locally
 
-- [React](https://reactjs.org)
-  - `npm install --save-dev @nrwl/react`
-- Web (no framework frontends)
-  - `npm install --save-dev @nrwl/web`
-- [Angular](https://angular.io)
-  - `npm install --save-dev @nrwl/angular`
-- [Nest](https://nestjs.com)
-  - `npm install --save-dev @nrwl/nest`
-- [Express](https://expressjs.com)
-  - `npm install --save-dev @nrwl/express`
-- [Node](https://nodejs.org)
-  - `npm install --save-dev @nrwl/node`
+Cd in to your newly created folder with the command <code>cd nx-fullstack</code>. Inside the folder run
 
-There are also many [community plugins](https://nx.dev/nx-community) you could add.
+```
+yarn nx run-many --target=serve --projects=nx-fullstack,api --parallel=true
+```
 
-## Generate an application
+Wait for the client <code>nx-fullstack</code> and the backend <code>api</code> to start. Go to http://localhost:4200 in your browser. Confirm that the client app at <code>apps/nx-fullstack/src/app/app.tsx</code> is talking to the backend at <code>apps/api/src/main.ts</code>. You should see the text <code>Welcome to the api!</code> in the browser.
+![NX in the browser](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/w78znd3eedx35xihs0ab.png)
 
-Run `nx g @nrwl/react:app my-app` to generate an application.
+#### Update <code>apps/api/src/main.ts</code> to serve the built <code>nx-fullstack</code> client once built
 
-> You can use any of the plugins above to generate applications as well.
+```
+import * as express from 'express';
+import * as path from 'path';
+import { Message } from '@nx-fullstack/api-interfaces';
 
-When using Nx, you can create multiple applications and libraries in the same workspace.
+const CLIENT_BUILD_PATH = path.join(__dirname, '../nx-fullstack');
 
-## Generate a library
+const app = express();
+app.use(express.static(CLIENT_BUILD_PATH));
 
-Run `nx g @nrwl/react:lib my-lib` to generate a library.
+const greeting: Message = { message: 'Welcome to api!' };
 
-> You can also use any of the plugins above to generate libraries as well.
+app.get('/api', (req, res) => {
+  res.send(greeting);
+});
 
-Libraries are shareable across libraries and applications. They can be imported from `@nx-fullstack/mylib`.
+app.get('*', (request, response) => {
+  response.sendFile(path.join(CLIENT_BUILD_PATH, 'index.html'));
+});
 
-## Development server
+const port = process.env.PORT || 3333;
+const server = app.listen(port, () => {
+  console.log('Listening at http://localhost:' + port + '/api');
+});
+server.on('error', console.error);
+```
 
-Run `nx serve my-app` for a dev server. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.
+#### Update build script in package.json and commit it to git
 
-## Code scaffolding
+```
+"build": "yarn nx run-many --target=build --projects=nx-fullstack,api --parallel=true"
+```
 
-Run `nx g @nrwl/react:component my-component --project=my-app` to generate a new component.
+#### Update start script in package.json and commit it to git
 
-## Build
+```
+"start": "node dist/apps/api/main.js"
+```
 
-Run `nx build my-app` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+## Deploy app to Heroku
 
-## Running unit tests
+Sign up for a [free account at Heroku here](https://signup.heroku.com/). Install the Heroku CLI by running the command below in the terminal.
 
-Run `nx test my-app` to execute the unit tests via [Jest](https://jestjs.io).
+```
+brew tap heroku/brew && brew install heroku
+```
 
-Run `nx affected:test` to execute the unit tests affected by a change.
+Run the heroku login command
 
-## Running end-to-end tests
+```
+heroku login
+```
 
-Run `ng e2e my-app` to execute the end-to-end tests via [Cypress](https://www.cypress.io).
+Heroku will ask you to authenticate yourself in the browser.
+![Heroku login](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/omasa83uvze5yvnzrapk.png)
+Once it's complete you can return to the terminal. You're now logged in.
 
-Run `nx affected:e2e` to execute the end-to-end tests affected by a change.
+#### Create a Heroku deploy target
 
-## Understand your workspace
+Run the CLI command for creating a new deploy target in your Heroku account.
 
-Run `nx dep-graph` to see a diagram of the dependencies of your projects.
+```
+heroku create
+```
 
-## Further help
+Once it's finished it will look like this.
+![Heroku deploy target](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/i1ruo0w4v2j2r59z8x35.png)
 
-Visit the [Nx Documentation](https://nx.dev) to learn more.
+#### Procfile in the root of your project
 
+Create a <code>Procfile</code> in the root of your project and add the following
 
+```
+web: yarn start
+```
 
-## ☁ Nx Cloud
+#### Deploy code to Heroku
 
-### Computation Memoization in the Cloud
+Make sure all your changes in the repo are commited. Then run
 
-<p style="text-align: center;"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-cloud-card.png"></p>
+```
+git push heroku master
+```
 
-Nx Cloud pairs with Nx in order to enable you to build and test code more rapidly, by up to 10 times. Even teams that are new to Nx can connect to Nx Cloud and start saving time instantly.
+#### Visit your deployed fullstack app
 
-Teams using Nx gain the advantage of building full-stack applications with their preferred framework alongside Nx’s advanced code generation and project dependency graph, plus a unified experience for both frontend and backend developers.
+Use the CLI command below to open up your deployed app in your default browser.
 
-Visit [Nx Cloud](https://nx.app/) to learn more.
+```
+heroku open
+```
+
+#### Voila!
+
+Your fullstack NX Workspace app is [now deployed and running on Heroku](https://thawing-brushlands-09373.herokuapp.com/).
