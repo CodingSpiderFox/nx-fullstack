@@ -19,18 +19,26 @@
     }
   },
   "projects": {
+    "api": {
+      "tags": []
+    },
+    "api-interfaces": {
+      "tags": []
+    },
     "nx-fullstack": {
       "tags": []
     },
     "nx-fullstack-e2e": {
       "tags": [],
       "implicitDependencies": ["nx-fullstack"]
-    },
-    "api": {
-      "tags": []
-    },
-    "api-interfaces": {
-      "tags": []
     }
+  },
+  "targetDependencies": {
+    "build": [
+      {
+        "target": "build",
+        "projects": "dependencies"
+      }
+    ]
   }
 }
